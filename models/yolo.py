@@ -12,8 +12,11 @@ from .modules import SPP, PAN, conv1x1, replace_act
 
 
 class YOLO(nn.Module):
-    def __init__(self, num_class=1, backbone_type='resnet18', anchor_boxes=None, act_type='leakyrelu'):
-        super(YOLO, self).__init__()
+    def __init__(self, num_class=1, backbone_type='resnet18', label_assignment_method='all_grid', 
+                    anchor_boxes=None, act_type='leakyrelu'):
+        super().__init__()
+        assert label_assignment_method in ['single_grid', 'all_grid', 'nearby_grid']
+
         if 'resnet' in backbone_type:
             self.backbone = ResNet(backbone_type)
             last_channel = 512 if backbone_type in ['resnet18', 'resnet34'] else 2048
@@ -32,7 +35,7 @@ class YOLO(nn.Module):
 
         self.pan = PAN(last_channel, act_type)
 
-        self.det_head = YOLOHead(last_channel, num_class, anchor_boxes)
+        self.det_head = YOLOHead(last_channel, num_class, label_assignment_method, anchor_boxes)
 
     def forward(self, x, is_training=True):
         _, x2, x3, x4 = self.backbone(x)
@@ -47,10 +50,11 @@ class YOLO(nn.Module):
 
 
 class YOLOHead(nn.Module):
-    def __init__(self, in_channel, num_class, anchor_boxes):
-        super(YOLOHead, self).__init__()
-        assert anchor_boxes is not None, 'Anchor boxes must be given.\n'
+    def __init__(self, in_channel, num_class, label_assignment_method, anchor_boxes):
+        super().__init__()
+        self.label_assignment_method = label_assignment_method
 
+        assert anchor_boxes is not None, 'Anchor boxes must be given.\n'
         self.anchor_boxes = torch.tensor(anchor_boxes)
         assert self.anchor_boxes.shape[0] * self.anchor_boxes.shape[1] != 0
         assert self.anchor_boxes.shape[2] == 2  # width, height
@@ -81,18 +85,27 @@ class YOLOHead(nn.Module):
                 x_shift = torch.arange(grid_w).view(1, 1, 1, grid_w).repeat(batch_size, self.num_anchor, grid_h, 1).to(device)
                 y_shift = torch.arange(grid_h).view(1, 1, grid_h, 1).repeat(batch_size, self.num_anchor, 1, grid_w).to(device)
 
-                base_anchors = ((self.anchor_boxes[i] * self.downsample_rate[i]).unsqueeze(0).unsqueeze(2).unsqueeze(3)) \
+                base_anchors = (self.anchor_boxes[i].unsqueeze(0).unsqueeze(2).unsqueeze(3)) \
                                 .repeat(1, 1, grid_h, grid_w, 1).to(device, dtype=torch.float32)
 
                 # Decode box confidence using sigmoid
                 feat[..., 0] = feat[..., 0].sigmoid()
 
                 # Decode box center coords by adding position shifts
-                feat[..., 1] = (feat[..., 1].sigmoid() + x_shift) * self.downsample_rate[i]
-                feat[..., 2] = (feat[..., 2].sigmoid() + y_shift) * self.downsample_rate[i]
+                if self.label_assignment_method == 'single_grid':
+                    feat[..., 1] = (feat[..., 1].sigmoid() + x_shift) * self.downsample_rate[i]
+                    feat[..., 2] = (feat[..., 2].sigmoid() + y_shift) * self.downsample_rate[i]
+                elif self.label_assignment_method == 'all_grid':
+                    feat[..., 1] = (feat[..., 1].tanh() * grid_w + x_shift) * self.downsample_rate[i]
+                    feat[..., 2] = (feat[..., 2].tanh() * grid_h + y_shift) * self.downsample_rate[i]
+                elif self.label_assignment_method == 'nearby_grid':
+                    feat[..., 1] = (feat[..., 1].tanh() * 1.5 + 0.5 + x_shift) * self.downsample_rate[i]
+                    feat[..., 2] = (feat[..., 2].tanh() * 1.5 + 0.5 + y_shift) * self.downsample_rate[i]
+                else:
+                    raise NotImplementedError
 
                 # Decode box width and height by multiplying predefined anchor boxes
-                feat[..., 3:5] = torch.exp(feat[..., 3:5]) * base_anchors
+                feat[..., 3:5] = feat[..., 3:5] * 4 * base_anchors
 
                 # Decode class logits using sigmoid
                 feat[..., 5:] = feat[..., 5:].sigmoid()

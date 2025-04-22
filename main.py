@@ -15,7 +15,13 @@ if __name__ == '__main__':
 
     trainer = YOLOTrainer(config)
 
-    if config.is_testing:
-        trainer.predict(config)
-    else:    
+    if config.task == 'train':
         trainer.run(config)
+    elif config.task == 'val':
+        trainer.validate(config)
+    elif config.task == 'predict':
+        trainer.predict(config)
+    elif config.task == 'debug':
+        trainer.debug(config)
+    else:
+        raise ValueError(f'Unsupported task type: {config.task}.\n')

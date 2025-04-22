@@ -16,8 +16,12 @@ from utils import (get_det_metrics, sampler_set_epoch, xywh_to_xyxy)
 class YOLOTrainer(BaseTrainer):
     def __init__(self, config):
         super().__init__(config)
-        if not config.is_testing:
+        if config.task in ['train', 'val']:
             self.mAP = get_det_metrics().to(self.device)
+
+        if config.task == 'debug':
+            from .loss import get_loss_fn
+            self.loss_fn = get_loss_fn(config, self.device)
 
     def train_one_epoch(self, config):
         self.model.train()
@@ -39,13 +43,21 @@ class YOLOTrainer(BaseTrainer):
             # Forward path
             with amp.autocast(enabled=config.amp_training):
                 preds = self.model(images)
-                loss = self.loss_fn(preds, bboxes, classes)
+                loss, (conf_loss, iou_loss, class_loss) = self.loss_fn(preds, bboxes, classes)
 
             if config.use_tb and self.main_rank:
                 self.writer.add_scalar('train/loss', loss.detach(), self.train_itrs)
+                self.writer.add_scalar('train/conf_loss', conf_loss, self.train_itrs)
+                self.writer.add_scalar('train/iou_loss', iou_loss, self.train_itrs)
+                self.writer.add_scalar('train/class_loss', class_loss, self.train_itrs)
 
             # Backward path
             self.scaler.scale(loss).backward()
+
+            # # Clip the gradients
+            # self.scaler.unscale_(self.optimizer)
+            # torch.nn.utils.clip_grad_norm_(self.model.parameters(), max_norm=1.0)
+
             self.scaler.step(self.optimizer)
             self.scaler.update()
             self.scheduler.step()
@@ -53,9 +65,12 @@ class YOLOTrainer(BaseTrainer):
             self.ema_model.update(self.model, self.train_itrs)
 
             if self.main_rank:
-                pbar.set_description(('%s'*2) % 
+                pbar.set_description(('%s'*5) % 
                                 (f'Epoch:{self.cur_epoch}/{config.total_epoch}{" "*4}|',
-                                f'Loss:{loss.item():4.4g}{" "*4}|',)
+                                f'Loss:{loss.item():4.4g}{" "*4}|',
+                                f'Conf Loss:{conf_loss:4.4g}{" "*4}|',
+                                f'IoU Loss:{iou_loss:4.4g}{" "*4}|',
+                                f'Class Loss:{class_loss:4.4g}{" "*4}|',)
                                 )
         return
 
@@ -174,7 +189,7 @@ class YOLOTrainer(BaseTrainer):
                 output = pred[pred_conf > config.test_conf_thrs]
 
                 # NMS per image
-                kept_indices = self.nms(output)
+                kept_indices = self.nms(output, nms_iou=config.test_iou)
 
                 if kept_indices is not None:
                     output = output[kept_indices].cpu()
@@ -194,3 +209,24 @@ class YOLOTrainer(BaseTrainer):
                         draw.text(bbox[j,:2].tolist(), text, fill='white', font=font)
 
                 image.save(save_path)
+
+    @torch.no_grad()
+    def debug(self, config):
+        if config.DDP:
+            raise ValueError('Debug mode currently does not support DDP.')
+
+        from utils.plot import visualize_assignments
+
+        self.logger.info(f'\nStart visualizing {config.label_assignment_method} label assignment results...\n')
+        for cur_itrs, (images, bboxes, classes) in enumerate(tqdm(self.train_loader)):
+            if cur_itrs >= config.num_debug_batch:
+                break
+
+            bboxes, classes = bboxes.float(), classes.float()
+
+            assigned_labels = self.loss_fn.label_assignment(bboxes, classes, config.train_bs, len(config.anchor_boxes))
+
+            visualize_assignments(assigned_labels=assigned_labels, bboxes=bboxes, anchor_boxes=config.anchor_boxes,
+                                    batch_idx=cur_itrs, img_size=config.img_size, image_stride=(8, 16, 32), save_dir=config.debug_dir)
+
+        self.logger.info('Debug finished.\n')

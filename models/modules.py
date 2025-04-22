@@ -19,7 +19,7 @@ def conv1x1(in_channels, out_channels, stride=1, bias=False):
 class DSConvBNAct(nn.Sequential):
     def __init__(self, in_channels, out_channels, kernel_size, stride=1, 
                     dilation=1, act_type='relu', **kwargs):
-        super(DSConvBNAct, self).__init__(
+        super().__init__(
             DWConvBNAct(in_channels, in_channels, kernel_size, stride, dilation, act_type, **kwargs),
             PWConvBNAct(in_channels, out_channels, act_type, **kwargs)
         )
@@ -33,8 +33,8 @@ class DWConvBNAct(nn.Sequential):
             padding = ((kernel_size[0] - 1) // 2 * dilation, (kernel_size[1] - 1) // 2 * dilation)
         elif isinstance(kernel_size, int):    
             padding = (kernel_size - 1) // 2 * dilation
-            
-        super(DWConvBNAct, self).__init__(
+
+        super().__init__(
             nn.Conv2d(in_channels, out_channels, kernel_size, stride, padding, 
                         dilation=dilation, groups=in_channels, bias=False),
             nn.BatchNorm2d(out_channels),
@@ -45,7 +45,7 @@ class DWConvBNAct(nn.Sequential):
 # Point-wise convolution -> batchnorm -> activation
 class PWConvBNAct(nn.Sequential):
     def __init__(self, in_channels, out_channels, act_type='relu', bias=True, **kwargs):
-        super(PWConvBNAct, self).__init__(
+        super().__init__(
             nn.Conv2d(in_channels, out_channels, 1, bias=bias),
             nn.BatchNorm2d(out_channels),
             Activation(act_type, **kwargs)
@@ -61,7 +61,7 @@ class ConvBNAct(nn.Sequential):
         elif isinstance(kernel_size, int):    
             padding = (kernel_size - 1) // 2 * dilation
 
-        super(ConvBNAct, self).__init__(
+        super().__init__(
             nn.Conv2d(in_channels, out_channels, kernel_size, stride, padding, dilation, groups, bias),
             nn.BatchNorm2d(out_channels),
             Activation(act_type, **kwargs)
@@ -72,7 +72,7 @@ class ConvBNAct(nn.Sequential):
 class DeConvBNAct(nn.Module):
     def __init__(self, in_channels, out_channels, scale_factor=2, kernel_size=None, 
                     padding=None, act_type='relu', **kwargs):
-        super(DeConvBNAct, self).__init__()
+        super().__init__()
         if kernel_size is None:
             kernel_size = 2*scale_factor - 1
         if padding is None:    
@@ -93,7 +93,7 @@ class DeConvBNAct(nn.Module):
 
 class Activation(nn.Module):
     def __init__(self, act_type, **kwargs):
-        super(Activation, self).__init__()
+        super().__init__()
         activation_hub = {'relu': nn.ReLU,             'relu6': nn.ReLU6,
                           'leakyrelu': nn.LeakyReLU,    'prelu': nn.PReLU,
                           'celu': nn.CELU,              'elu': nn.ELU, 
@@ -123,7 +123,7 @@ def replace_act(module, tgt_act_type, src_act=nn.ReLU):
 
 class SPP(nn.Module):
     def __init__(self, in_channel, out_channel, act_type, pool_sizes=[5,9,13]):
-        super(SPP, self).__init__()
+        super().__init__()
         self.conv1 = ConvBNAct(in_channel, in_channel//2, 1, act_type=act_type)
         self.pools = nn.ModuleList([nn.MaxPool2d(p_size, 1, p_size//2) for p_size in pool_sizes])
         self.conv2 = ConvBNAct(in_channel*2, out_channel, 1, act_type=act_type)
@@ -143,7 +143,7 @@ class SPP(nn.Module):
 
 class FPN(nn.Module):
     def __init__(self, channel, act_type):
-        super(FPN, self).__init__()
+        super().__init__()
         self.up1 = ConvBNAct(channel, channel//2, 1, act_type=act_type)
         self.up2 = nn.Sequential(
                             ConvBNAct(channel, channel//2, 3, act_type=act_type),
@@ -176,7 +176,7 @@ class FPN(nn.Module):
 
 class PAN(nn.Module):
     def __init__(self, channel, act_type):
-        super(PAN, self).__init__()
+        super().__init__()
         self.up1 = ConvBNAct(channel, channel//2, 1, act_type=act_type)
         self.up2 = nn.Sequential(
                             ConvBNAct(channel, channel//2, 3, act_type=act_type),

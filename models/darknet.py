@@ -5,7 +5,7 @@ from .modules import ConvBNAct
 
 class DarkNet(nn.Module):
     def __init__(self, arch_type='darknet53', classification=False, num_class=1000, act_type='relu'):
-        super(DarkNet, self).__init__()
+        super().__init__()
         arch_hub = {'darknet53':[1,2,8,8,4]}
         if arch_type not in arch_hub:
             raise NotImplementedError(f'Unsupported model type: {arch_type}\n')
@@ -59,7 +59,7 @@ class DarkNet(nn.Module):
 
 class ResidualBlock(nn.Module):
     def __init__(self, channels, act_type):
-        super(ResidualBlock, self).__init__()
+        super().__init__()
         hid_channels = channels // 2
         self.conv = nn.Sequential(
                                 ConvBNAct(channels, hid_channels, 1, act_type=act_type),

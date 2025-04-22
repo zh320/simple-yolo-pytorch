@@ -2,9 +2,11 @@ import os
 import albumentations as AT
 
 from .base_dataset import BaseDataset
+from .dataset_registry import register_dataset
 
 
-class VOCDataset(BaseDataset):
+@register_dataset
+class VOC(BaseDataset):
     def __init__(self, config, mode='train'):
         super().__init__(config, mode)
         if config.train_voc2007 + config.train_voc2012 == 0:

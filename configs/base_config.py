@@ -1,5 +1,8 @@
 class BaseConfig:
     def __init__(self,):
+        # Task
+        self.task = 'train' # train, val, predict, debug
+
         # Dataset
         self.dataset = None
         self.dataroot = None
@@ -26,12 +29,16 @@ class BaseConfig:
         self.conf_thrs = 0.001
 
         # Testing
-        self.is_testing = False
         self.test_bs = 16
         self.test_data_folder = None
         self.test_conf_thrs = 0.2
+        self.test_iou = 0.4
         self.class_map = None
         self.color_map = None
+
+        # Debugging
+        self.num_debug_batch = 1
+        self.debug_dir = None
 
         # Loss
         self.lambda_obj = 1.
@@ -39,10 +46,12 @@ class BaseConfig:
         self.lambda_noobj = 1.
         self.lambda_scales = [1., 1., 1.]
         self.use_noobj_loss = False
-        self.label_assignment_method = 'vanilla'
+        self.label_assignment_method = 'all_grid'
         self.grid_sizes = None
-        self.iou_method = 'iou'
+        self.iou_loss_type = 'iou'
         self.focal_loss_gamma = 0.
+        self.match_iou_thres = 0.1
+        self.filter_by_max_iou = True
 
         # Scheduler
         self.lr_policy = 'cos_warmup'
@@ -91,7 +100,7 @@ class BaseConfig:
         self.synBN = False
 
     def init_dependent_config(self):
-        if self.load_ckpt_path is None and not self.is_testing:
+        if self.load_ckpt_path is None and self.task in ['train', 'debug']:
             self.load_ckpt_path = f'{self.save_dir}/last.pth'
 
         if self.tb_log_dir is None:
@@ -110,10 +119,14 @@ class BaseConfig:
         else:
             assert len(self.anchor_boxes) > 0
 
-        if self.is_testing:
+        if self.task == 'predict':
             if self.class_map is None:
-                raise ValueError('You need to provide class map in test mode.\n')
+                raise ValueError('You need to provide class map for `predict` task.\n')
 
             if self.color_map is None:
                 import numpy as np
                 self.color_map = np.random.randint(0, 255, (self.num_class, 3)).tolist()
+
+        if self.task == 'debug':
+            if self.debug_dir is None:
+                self.debug_dir = f'{self.save_dir}/{self.label_assignment_method}_results'

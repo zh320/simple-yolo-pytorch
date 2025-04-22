@@ -54,7 +54,7 @@ class BaseDataset(Dataset):
             self._cache_lbl()
 
     def _cache_lbl(self):
-        print(f'Loading {self.mode} xml annotations into cpu once...')
+        print(f'Loading {self.mode} xml annotations into ram once...')
         self.box_ann, self.cls_ann = [], []
         for lbl_path in self.labels:
             box, cls = self.read_xml_ann(lbl_path, self.class_map)

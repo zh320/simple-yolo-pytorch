@@ -1,8 +1,7 @@
 from torch.utils.data import DataLoader
 
-from .voc import VOCDataset
-
-dataset_hub = {'voc':VOCDataset}
+from .voc import VOC
+from .dataset_registry import dataset_hub
 
 
 def get_dataset(config):
@@ -11,10 +10,10 @@ def get_dataset(config):
         val_dataset = dataset_hub[config.dataset](config=config, mode='val')
     else:
         raise NotImplementedError('Unsupported dataset!')
-        
+
     return train_dataset, val_dataset
-    
-    
+
+
 def get_loader(config, rank, pin_memory=True):
     train_dataset, val_dataset = get_dataset(config)
 
@@ -63,3 +62,9 @@ def get_test_loader(config):
                                     shuffle=False, num_workers=config.num_workers)
 
     return test_loader
+
+
+def list_available_datasets():
+    dataset_list = list(dataset_hub.keys())
+
+    return dataset_list

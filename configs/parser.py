@@ -1,5 +1,7 @@
 import argparse
 
+from datasets import list_available_datasets
+
 
 def load_parser(config):
     args = get_parser()
@@ -15,8 +17,13 @@ def load_parser(config):
 
 def get_parser():
     parser = argparse.ArgumentParser()
+    # Task
+    parser.add_argument('--task', type=str, default=None, choices = ['train', 'val', 'predict', 'debug'],
+        help='choose which task you want to use')
+
     # Dataset
-    parser.add_argument('--dataset', type=str, default=None, choices=['cityscapes'],
+    dataset_list = list_available_datasets()
+    parser.add_argument('--dataset', type=str, default=None, choices=dataset_list,
         help='choose which dataset you want to use')
     parser.add_argument('--dataroot', type=str, default=None, 
         help='path to your dataset')
@@ -57,18 +64,24 @@ def get_parser():
         help='confidence threshold for validation')
 
     # Testing
-    parser.add_argument('--is_testing', action='store_true', default=None,
-        help='whether to perform testing/predicting or not (default: False)')
     parser.add_argument('--test_bs', type=int, default=None, 
         help='testing batch size (currently only support single GPU)')
     parser.add_argument('--test_data_folder', type=str, default=None, 
         help='path to your testing image folder')
     parser.add_argument('--test_conf_thrs', type=float, default=None, 
         help='confidence threshold for testing')
+    parser.add_argument('--test_iou', type=float, default=None, 
+        help='IoU threshold for testing, use for NMS')
     parser.add_argument('--class_map', type=dict, default=None,
         help='predefined dict to convert class names into labels')
     parser.add_argument('--color_map', type=list, default=None,
         help='predefined colormap for better visualization')
+
+    # Debugging
+    parser.add_argument('--num_debug_batch', type=int, default=None, 
+        help='number of debugging batch size')
+    parser.add_argument('--debug_dir', type=str, default=None, 
+        help='path to save debugging results')
 
     # Loss
     parser.add_argument('--lambda_obj', type=float, default=None,
@@ -86,11 +99,15 @@ def get_parser():
         help='choose which label assignment method you want to use')
     parser.add_argument('--grid_sizes', type=list, default=None,
         help='sizes of grid for different detection layers')    
-    parser.add_argument('--iou_method', type=str, default=None, 
+    parser.add_argument('--iou_loss_type', type=str, default=None, 
         choices=['iou', 'ciou', 'diou', 'giou', 'siou'],
         help='choose which iou method for coordinates/box loss you want to use')
     parser.add_argument('--focal_loss_gamma', type=float, default=None,
         help='coefficient of gamma for focal loss')
+    parser.add_argument('--match_iou_thres', type=float, default=None,
+        help='IoU threshold to determine whether a GT box match a given anchor or not')
+    parser.add_argument('--filter_by_max_iou', action='store_false', default=None,
+        help='whether to filter matches by max IoU or not when there are multiple matches per anchor (default: True)')
 
     # Scheduler
     parser.add_argument('--lr_policy', type=str, default=None, 
