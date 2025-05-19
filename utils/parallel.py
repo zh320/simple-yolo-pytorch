@@ -45,7 +45,7 @@ def parallel_model(config, model, rank, device):
 
 
 def destroy_ddp_process(config):
-    if config.DDP:
+    if config.DDP and config.destroy_ddp_process:
         dist.destroy_process_group()
 
 

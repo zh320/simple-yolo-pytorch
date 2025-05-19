@@ -9,17 +9,23 @@ import torch.nn as nn
 from .backbone import ResNet
 from .darknet import DarkNet
 from .modules import SPP, PAN, conv1x1, replace_act
+from .mresnet import modify_resnet
 
 
 class YOLO(nn.Module):
-    def __init__(self, num_class=1, backbone_type='resnet18', label_assignment_method='all_grid', 
-                    anchor_boxes=None, act_type='leakyrelu'):
+    def __init__(self, num_class=1, backbone_type='resnet18', label_assignment_method='nearby_grid', 
+                    anchor_boxes=None, act_type='leakyrelu', channel_sparsity=0.75):
         super().__init__()
         assert label_assignment_method in ['single_grid', 'all_grid', 'nearby_grid']
 
         if 'resnet' in backbone_type:
-            self.backbone = ResNet(backbone_type)
-            last_channel = 512 if backbone_type in ['resnet18', 'resnet34'] else 2048
+            resnet = ResNet(backbone_type)
+            if channel_sparsity != 1.:
+                assert channel_sparsity < 1, '`channel_sparsity` should be less than or equal to 1'
+                resnet = modify_resnet(resnet, channel_sparsity)
+
+            self.backbone = resnet
+            last_channel = int(512*channel_sparsity) if backbone_type in ['resnet18', 'resnet34'] else int(2048*channel_sparsity)
 
             # Change activations of torchvision pretrained model
             if act_type != 'relu':

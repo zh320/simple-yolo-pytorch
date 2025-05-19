@@ -3,7 +3,7 @@ from .base_config import BaseConfig
 
 class MyConfig(BaseConfig):
     def __init__(self,):
-        super(MyConfig, self).__init__()
+        super().__init__()
         # Task
         self.task = 'train'
 
@@ -30,15 +30,15 @@ class MyConfig(BaseConfig):
         self.num_debug_batch = 1
 
         # Loss
-        self.lambda_coord = 0.05
+        self.lambda_coord = 0.1
         self.lambda_obj = 1.0
         self.lambda_noobj = 0.5
-        self.lambda_scales = [4.0, 1.0, 0.25]
+        self.lambda_scales = [1.0, 1.0, 1.0]
         self.use_noobj_loss = False
-        self.iou_loss_type = 'siou'
+        self.iou_loss_type = 'ciou'
         self.focal_loss_gamma = 3.5
         self.label_assignment_method = 'nearby_grid'
-        self.match_iou_thres = 0.1
+        self.match_iou_thres = 0.0625
         self.filter_by_max_iou = True
 
         # Testing (VOC)

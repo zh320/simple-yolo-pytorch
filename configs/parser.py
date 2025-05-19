@@ -31,6 +31,8 @@ def get_parser():
         help='number of classes')
     parser.add_argument('--load_lbl_once', action='store_false', default=None, 
         help='load labels into memeroy once to avoid reading them multuple times')
+    parser.add_argument('--min_label_area', type=int, default=None, 
+        help='minimum label area threshold for keeping a label')
 
     parser.add_argument('--train_voc2007', action='store_false', default=None, 
         help='whether to train VOC 2007 or not (default: True)')

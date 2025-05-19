@@ -138,6 +138,8 @@ class YOLOTrainer(BaseTrainer):
 
         self.mAP.reset()
 
+        if not isinstance(score, torch.Tensor):
+            score = torch.tensor(score)
         return score.to(self.device)
 
     @classmethod

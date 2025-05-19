@@ -56,10 +56,13 @@ class BaseDataset(Dataset):
     def _cache_lbl(self):
         print(f'Loading {self.mode} xml annotations into ram once...')
         self.box_ann, self.cls_ann = [], []
+        rm_items = 0
         for lbl_path in self.labels:
-            box, cls = self.read_xml_ann(lbl_path, self.class_map)
+            box, cls, rm_item = self.read_xml_ann(lbl_path, self.class_map, self.config.min_label_area)
             self.box_ann.append(box)
             self.cls_ann.append(cls)
+            rm_items += rm_item
+        print(f'Finished loading annotations. Remove {rm_items} unqualified/too small objects in total.')
 
     def __len__(self):
         return len(self.images)
@@ -179,7 +182,7 @@ class BaseDataset(Dataset):
         if self.load_lbl_once:
             bboxes, classes = self.box_ann[index].copy(), self.cls_ann[index].copy()
         else:
-            bboxes, classes = self.read_xml_ann(self.labels[index], self.class_map)
+            bboxes, classes, _ = self.read_xml_ann(self.labels[index], self.class_map)
         bboxes *= resize_ratio
 
         return image, bboxes, classes
@@ -198,7 +201,7 @@ class BaseDataset(Dataset):
         return torch.stack(images, 0), torch.cat(bboxes, 0), torch.cat(classes, 0)
 
     @classmethod
-    def read_xml_ann(cls, file_path, class_map, normalize=False):
+    def read_xml_ann(cls, file_path, class_map, min_label_area=0, normalize=False):
         tree = ET.ElementTree(file=file_path)
         root = tree.getroot()
         size = root.find('size')
@@ -207,6 +210,7 @@ class BaseDataset(Dataset):
         objs = root.findall('object')
 
         box, cid = [], []
+        rm_item = 0
         for obj in objs:
             obj_name = obj.find('name').text
             class_id = float(class_map[obj_name])
@@ -215,6 +219,10 @@ class BaseDataset(Dataset):
             ymin = float(bbox.find('ymin').text)
             xmax = float(bbox.find('xmax').text)
             ymax = float(bbox.find('ymax').text)
+            if (xmax - xmin) * (ymax - ymin) <= min_label_area:
+                rm_item += 1
+                continue
+
             if normalize:
                 xmin /= img_width
                 ymin /= img_height
@@ -224,4 +232,4 @@ class BaseDataset(Dataset):
             box.append([xmin, ymin, xmax, ymax])
             cid.append([class_id])
 
-        return np.array(box), np.array(cid)
+        return np.array(box), np.array(cid), rm_item

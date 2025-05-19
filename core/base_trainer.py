@@ -58,7 +58,7 @@ class BaseTrainer:
 
             if config.task == 'train':
                 # Define loss function
-                self.loss_fn = get_loss_fn(config, self.device)
+                self.loss_fn = get_loss_fn(config).to(self.device)
 
                 # Define optimizer
                 self.optimizer = get_optimizer(config, self.model)

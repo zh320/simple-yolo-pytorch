@@ -30,5 +30,6 @@ def cal_model_params(config, imgw=512, imgh=512):
 if __name__ == '__main__':
     config = MyConfig()
     config = load_parser(config)
+    config.init_dependent_config()
 
     cal_model_params(config)

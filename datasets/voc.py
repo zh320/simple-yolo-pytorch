@@ -51,7 +51,7 @@ class VOC(BaseDataset):
                 AT.RandomCrop(height=config.img_size[1], width=config.img_size[0]),
                 AT.ColorJitter(brightness=config.brightness, contrast=config.contrast, saturation=config.saturation, hue=config.hue),
                 AT.HorizontalFlip(p=config.h_flip),
-                ], bbox_params=AT.BboxParams(format='albumentations', label_fields=['class_labels'], min_area=10, min_visibility=0.01)
+                ], bbox_params=AT.BboxParams(format='albumentations', label_fields=['class_labels'], min_area=config.min_label_area, min_visibility=0.01)
             )
 
         self._check_dataset()

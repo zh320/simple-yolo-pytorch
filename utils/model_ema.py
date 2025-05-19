@@ -22,8 +22,8 @@ class ModelEmaV2(nn.Module):
         self.device = device  # perform ema on different device from model if set
         if self.device is not None:
             self.ema.to(device=device)
-        self.use_ema = config.use_ema    
-        self.total_itrs = config.total_itrs    
+        self.use_ema = config.use_ema
+        self.total_itrs = getattr(config, 'total_itrs', 0)
 
     @torch.no_grad()
     def _update(self, model, update_fn):

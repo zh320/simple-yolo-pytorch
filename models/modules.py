@@ -178,24 +178,23 @@ class PAN(nn.Module):
     def __init__(self, channel, act_type):
         super().__init__()
         self.up1 = ConvBNAct(channel, channel//2, 1, act_type=act_type)
+        self.down1 = ConvBNAct(channel//4, channel//4, 3, 2, act_type=act_type)
+        self.down2 = ConvBNAct(channel//2, channel//2, 3, 2, act_type=act_type)
         self.up2 = nn.Sequential(
-                            ConvBNAct(channel, channel//2, 3, act_type=act_type),
-                            ConvBNAct(channel//2, channel//2, 3, act_type=act_type),
-                            ConvBNAct(channel//2, channel//4, 1, act_type=act_type),
-                        )
-        self.head1 = nn.Sequential(
-                        ConvBNAct(channel//2, channel//4, 3, act_type=act_type),
+                        ConvBNAct(channel, channel//4, 1, act_type=act_type),
                         ConvBNAct(channel//4, channel//4, 3, act_type=act_type),
                     )
-        self.down1 = ConvBNAct(channel//4, channel//4, 3, 2, act_type=act_type)
-        self.head2 = nn.Sequential(
-                        ConvBNAct(channel//2, channel//2, 3, act_type=act_type),
-                        ConvBNAct(channel//2, channel//2, 3, act_type=act_type)
+        self.head1 = nn.Sequential(
+                        ConvBNAct(channel//2, channel//4, 1, act_type=act_type),
+                        ConvBNAct(channel//4, channel//4, 3, act_type=act_type),
                     )
-        self.down2 = ConvBNAct(channel//2, channel//2, 3, 2, act_type=act_type)
+        self.head2 = nn.Sequential(
+                        DSConvBNAct(channel//2, channel//2, 3, act_type=act_type),
+                        ConvBNAct(channel//2, channel//2, 1, act_type=act_type),
+                    )
         self.head3 = nn.Sequential(
-                        ConvBNAct(channel, channel, 3, act_type=act_type),
-                        ConvBNAct(channel, channel, 3, act_type=act_type)
+                        DSConvBNAct(channel, channel, 3, act_type=act_type),
+                        ConvBNAct(channel, channel, 1, act_type=act_type),
                     )
 
     def forward(self, x1, x2, x3):

@@ -8,6 +8,7 @@ class BaseConfig:
         self.dataroot = None
         self.num_class = -1
         self.load_lbl_once = True
+        self.min_label_area = 10
 
         # VOC
         self.train_voc2007 = True
@@ -52,6 +53,7 @@ class BaseConfig:
         self.focal_loss_gamma = 0.
         self.match_iou_thres = 0.1
         self.filter_by_max_iou = True
+        self.assign_conf_method = 'iou'
 
         # Scheduler
         self.lr_policy = 'cos_warmup'
@@ -98,6 +100,7 @@ class BaseConfig:
 
         # DDP
         self.synBN = False
+        self.destroy_ddp_process = True
 
     def init_dependent_config(self):
         if self.load_ckpt_path is None and self.task in ['train', 'debug']:
@@ -130,3 +133,6 @@ class BaseConfig:
         if self.task == 'debug':
             if self.debug_dir is None:
                 self.debug_dir = f'{self.save_dir}/{self.label_assignment_method}_results'
+
+        if self.warmup_epochs > self.total_epoch:
+            self.warmup_epochs = self.total_epoch

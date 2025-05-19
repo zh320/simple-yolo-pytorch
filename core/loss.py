@@ -10,13 +10,13 @@ import torch.nn.functional as F
 from utils import xywh_to_xyxy, box_iou
 
 
-def get_loss_fn(config, device):
+def get_loss_fn(config):
     criterion = YOLOLoss(num_class=config.num_class, img_size=config.img_size, anchor_boxes=config.anchor_boxes,
                         lambda_coord=config.lambda_coord, lambda_obj=config.lambda_obj, lambda_noobj=config.lambda_noobj, 
                         lambda_scales=config.lambda_scales, use_noobj_loss=config.use_noobj_loss, iou_loss_type=config.iou_loss_type,
                         label_assignment_method=config.label_assignment_method, grid_sizes=config.grid_sizes,
                         focal_loss_gamma=config.focal_loss_gamma, match_iou_thres=config.match_iou_thres,
-                        filter_by_max_iou=config.filter_by_max_iou)
+                        filter_by_max_iou=config.filter_by_max_iou, assign_conf_method=config.assign_conf_method)
 
     return criterion
 
@@ -34,7 +34,7 @@ class YOLOLoss(nn.Module):
 
         self.num_class = num_class
         self.num_attrib = 5 + num_class
-        self.img_size = torch.tensor(img_size)
+        self.register_buffer('img_size', torch.tensor(img_size))
         self.lambda_coord = lambda_coord
         self.lambda_obj = lambda_obj
         self.lambda_noobj = lambda_noobj
@@ -45,7 +45,8 @@ class YOLOLoss(nn.Module):
         self.filter_by_max_iou = filter_by_max_iou
 
         self.num_anchor_per_grid = len(anchor_boxes[0])
-        self.anchor_boxes = [torch.tensor(anch, dtype=torch.float32).view(1, self.num_anchor_per_grid, 1, 1, 2) for anch in anchor_boxes]
+        self.register_buffer('anchor_boxes', torch.stack([torch.tensor(anch, dtype=torch.float32).view(1, self.num_anchor_per_grid, 1, 1, 2) \
+                                                            for anch in anchor_boxes]))
 
         if grid_sizes is None:
             grid_sizes = [(img_size[0]//downsample_rate[i], img_size[1]//downsample_rate[i]) for i in range(len(downsample_rate))]
@@ -54,7 +55,9 @@ class YOLOLoss(nn.Module):
 
         if label_assignment_method == 'all_grid':
             anchs = [anch.squeeze(0)/torch.tensor(img_size) for anch in self.anchor_boxes]
-            self.anchor_grids = [self.build_anchor_grid(anch, grid_size) for anch, grid_size in zip(anchs, grid_sizes)]
+            for i, (anch, grid_size) in enumerate(zip(anchs, grid_sizes)):
+                anchor_grid = self.build_anchor_grid(anch, grid_size)
+                self.register_buffer(f'anchor_grid_{i}', anchor_grid)
 
         self.bce_loss_func = FocalLoss(gamma=focal_loss_gamma)
         self.iou_loss_func = IoULoss(iou_loss_type)
@@ -80,17 +83,6 @@ class YOLOLoss(nn.Module):
         batch_size = predictions[0].shape[0]
         num_labels = len(bboxes)
         num_pred_layer = len(predictions)
-
-        if self.img_size.device != device:
-            self.img_size = self.img_size.to(device)
-
-        for i in range(num_pred_layer):
-            if self.anchor_boxes[i].device != device:
-                self.anchor_boxes[i] = self.anchor_boxes[i].to(device)
-
-            if self.label_assignment_method == 'all_grid':
-                if self.anchor_grids[i].device != device:
-                    self.anchor_grids[i] = self.anchor_grids[i].to(device)
 
         if num_labels:
             assigned_labels = self.label_assignment(bboxes, classes, batch_size, num_pred_layer)
@@ -147,8 +139,11 @@ class YOLOLoss(nn.Module):
                 if self.assign_conf_method == 'iou':
                     assigned_conf[pos_mask] = (1 - raw_iou_loss).detach().clamp(min=0., max=1.)
 
-                # Compute class loss (binary cross-entropy)
-                class_loss = self.bce_loss_func(pred_class[pos_mask], assigned_class[pos_mask])
+                if self.num_class > 1:
+                    # Compute class loss when there are multiple classes (binary cross-entropy)
+                    class_loss = self.bce_loss_func(pred_class[pos_mask], assigned_class[pos_mask])
+                else:
+                    class_loss = torch.tensor(0.)
             else:
                 assigned_conf = torch.zeros_like(pred_conf, device=device)
 
@@ -186,7 +181,7 @@ class YOLOLoss(nn.Module):
                     assigned_idx, assigned_bboxes = self.single_grid_assignment(bboxes, cls, self.grid_sizes[i], self.anchor_boxes[i])
 
                 elif self.label_assignment_method == 'all_grid':
-                    assigned_idx, assigned_bboxes = self.all_grid_assignment(bboxes, cls, batch_size, self.anchor_grids[i])
+                    assigned_idx, assigned_bboxes = self.all_grid_assignment(bboxes, cls, batch_size, getattr(self, f'anchor_grid_{i}'))
 
                 elif self.label_assignment_method == 'nearby_grid':
                     assigned_idx, assigned_bboxes = self.nearby_grid_assignment(bboxes, cls, self.grid_sizes[i], self.anchor_boxes[i])
