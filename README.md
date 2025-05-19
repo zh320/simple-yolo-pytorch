@@ -127,8 +127,8 @@ CUDA_VISIBLE_DEVICES=0 python main.py
 ## VOC<sup>1</sup>
 | Model					| Params(M)	| mAP@IoU=0.5		| mAP@IoU=0.5:0.95	|
 | --------------------- |:---------:|:-----------------:|:-----------------:|
-| YOLO <sup>2</sup>		| 7.76		| 0.716				| 0.467				|
-| YOLOv5s <sup>3</sup>	| 7.02		| 0.721	<sup>4</sup>| 0.450	<sup>4</sup>|
+| YOLO<sup>2</sup>		| 7.76		| 0.716				| 0.467				|
+| YOLOv5s<sup>3</sup>	| 7.02		| 0.721<sup>4</sup>	| 0.450<sup>4</sup>	|
 
 [<sup>1</sup>The training set is VOC07 `trainval` + VOC12 `trainval` and the validation set is VOC07 `test`.]  
 [<sup>2</sup>The YOLO from this repo used ResNet-18 as backbone with `channel_sparsity=0.75`.]  
