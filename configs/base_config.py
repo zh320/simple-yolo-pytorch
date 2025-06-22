@@ -17,6 +17,7 @@ class BaseConfig:
         # Model
         self.model = None
         self.backbone_type = None
+        self.channel_sparsity = 1.0
 
         # Training
         self.total_epoch = 300
@@ -28,6 +29,8 @@ class BaseConfig:
         self.begin_val_epoch = 0    # Epoch to start validation
         self.val_interval = 1       # Epoch interval between validation
         self.conf_thrs = 0.001
+        self.max_nms_num = 100
+        self.val_iou = 0.6
 
         # Testing
         self.test_bs = 16

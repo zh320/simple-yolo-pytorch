@@ -32,7 +32,7 @@ def get_parser():
     parser.add_argument('--load_lbl_once', action='store_false', default=None, 
         help='load labels into memeroy once to avoid reading them multuple times')
     parser.add_argument('--min_label_area', type=int, default=None, 
-        help='minimum label area threshold for keeping a label')
+        help='minimal area (pixel number) to keep a label')
 
     parser.add_argument('--train_voc2007', action='store_false', default=None, 
         help='whether to train VOC 2007 or not (default: True)')
@@ -44,8 +44,10 @@ def get_parser():
         choices=['yolo',],
         help='choose which model you want to use')
     parser.add_argument('--backbone_type', type=str, default=None, 
-        choices=['resnet18', 'resnet34', 'resnet50', 'resnet101', 'darknet53'],
+        choices=['resnet18', 'resnet34', 'resnet50', 'resnet101', 'darknet'],
         help='choose which backbone you want to use')
+    parser.add_argument('--channel_sparsity', type=float, default=None, 
+        help="sparsity of channel for each layer, should be between (0, 1]")
 
     # Training
     parser.add_argument('--total_epoch', type=int, default=None, 
@@ -64,6 +66,10 @@ def get_parser():
         help='epoch interval between two validations')
     parser.add_argument('--conf_thrs', type=float, default=None, 
         help='confidence threshold for validation')
+    parser.add_argument('--max_nms_num', type=int, default=None, 
+        help='max number of predicted objects which are sent to NMS')
+    parser.add_argument('--val_iou', type=float, default=None, 
+        help='IoU threshold for validation, use for NMS')
 
     # Testing
     parser.add_argument('--test_bs', type=int, default=None, 
@@ -110,6 +116,9 @@ def get_parser():
         help='IoU threshold to determine whether a GT box match a given anchor or not')
     parser.add_argument('--filter_by_max_iou', action='store_false', default=None,
         help='whether to filter matches by max IoU or not when there are multiple matches per anchor (default: True)')
+    parser.add_argument('--assign_conf_method', type=str, default=None, 
+        choices=['iou', 'constant'],
+        help='choose which confidence assignment method of GT for confidence/object loss you want to use')
 
     # Scheduler
     parser.add_argument('--lr_policy', type=str, default=None, 

@@ -62,7 +62,7 @@ class BaseDataset(Dataset):
             self.box_ann.append(box)
             self.cls_ann.append(cls)
             rm_items += rm_item
-        print(f'Finished loading annotations. Remove {rm_items} unqualified/too small objects in total.')
+        print(f'Finished loading annotations. Remove {rm_items} unqualified (too small) objects in total.\n')
 
     def __len__(self):
         return len(self.images)

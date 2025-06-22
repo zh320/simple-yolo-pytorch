@@ -17,6 +17,7 @@ class MyConfig(BaseConfig):
         # Model
         self.model = 'yolo'
         self.backbone_type = 'resnet18'
+        self.channel_sparsity = 0.75
 
         # Training
         self.total_epoch = 400

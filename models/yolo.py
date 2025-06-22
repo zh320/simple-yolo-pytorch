@@ -14,7 +14,7 @@ from .mresnet import modify_resnet
 
 class YOLO(nn.Module):
     def __init__(self, num_class=1, backbone_type='resnet18', label_assignment_method='nearby_grid', 
-                    anchor_boxes=None, act_type='leakyrelu', channel_sparsity=0.75):
+                    anchor_boxes=None, act_type='relu', channel_sparsity=0.75):
         super().__init__()
         assert label_assignment_method in ['single_grid', 'all_grid', 'nearby_grid']
 
@@ -32,8 +32,8 @@ class YOLO(nn.Module):
                 replace_act(self.backbone, act_type, nn.ReLU)
 
         elif backbone_type == 'darknet':
-            self.backbone = DarkNet(act_type=act_type)
-            last_channel = 1024
+            self.backbone = DarkNet(act_type=act_type, channel_sparsity=channel_sparsity)
+            last_channel = int(1024 * channel_sparsity)
         else:
             raise NotImplementedError()
 

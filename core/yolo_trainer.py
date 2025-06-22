@@ -100,7 +100,7 @@ class YOLOTrainer(BaseTrainer):
                 output = pred[pred_conf > config.conf_thrs]
 
                 # NMS per image
-                kept_indices = self.nms(output)
+                kept_indices = self.nms(output, max_nms_num=config.max_nms_num, nms_iou=config.val_iou)
 
                 if kept_indices is None:
                     outputs.append(dict(boxes=empty_tensor, scores=empty_tensor, labels=empty_tensor.long()))
