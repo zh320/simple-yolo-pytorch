@@ -125,15 +125,65 @@ CUDA_VISIBLE_DEVICES=0 python main.py
 # Performances and checkpoints
 
 ## VOC<sup>1</sup>
+
+### YOLO(this repo) vs YOLOv5
 | Model					| Params(M)	| mAP@IoU=0.5		| mAP@IoU=0.5:0.95	|
 | --------------------- |:---------:|:-----------------:|:-----------------:|
-| YOLO<sup>2</sup>		| 7.76		| 0.716				| 0.467				|
-| YOLOv5s<sup>3</sup>	| 7.02		| 0.721<sup>4</sup>	| 0.450<sup>4</sup>	|
+| YOLO<sup>2</sup>		| 7.76		| 0.716<sup>4</sup>	| 0.468<sup>4</sup>	|
+| YOLOv5s<sup>3</sup>	| 7.02		| 0.721<sup>5</sup>	| 0.450<sup>5</sup>	|
 
 [<sup>1</sup>The training set is VOC07 `trainval` + VOC12 `trainval` and the validation set is VOC07 `test`.]  
-[<sup>2</sup>The YOLO from this repo used ResNet-18 as backbone with `channel_sparsity=0.75`.]  
+[<sup>2</sup>The YOLO from this repo used ResNet-18 as its default backbone with `channel_sparsity=0.75` unless otherwise mentioned.]  
 [<sup>3</sup>This model was obtained from Ultralytics' repo. Its activation functions have been modified as ReLU for comparison.]  
-[<sup>4</sup>These results are obtained from YOLOv5's built-in evaluation script, not from *pycocotools*.]  
+[<sup>4</sup>For fair comparison, `max_nms_num` is set to 300.]  
+[<sup>5</sup>These results are obtained from YOLOv5's built-in evaluation script, not from *pycocotools*.]  
+
+### Performances vs different label assignment methods
+| Model	| label_assignment_method	| mAP@IoU=0.5	| mAP@IoU=0.5:0.95	|
+| ----- | ------------------------- |:-------------:|:-----------------:|
+| YOLO	| single_grid				| 0.640			| 0.390				|
+| YOLO	| nearby_grid				| 0.716			| 0.468				|
+| YOLO	| all_grid					| 0.662			| 0.429				|
+
+### Performances vs different backbones
+| Model	| Backbone<sup>1</sup>	| Params(M)	| mAP@IoU=0.5	| mAP@IoU=0.5:0.95	|
+| ----- | --------------------- |:---------:|:-------------:|:-----------------:|
+| YOLO	| ResNet-18				| 7.76		| 0.716			| 0.468				|
+| YOLO	| ResNet-34				| 13.45		| 0.742			| 0.505				|
+| YOLO	| ResNet-50				| 36.49		| 0.761			| 0.520				|
+| YOLO	| Darknet				| 28.68		| 0.737			| 0.498				|
+
+[<sup>1</sup>Please note that ResNets are pretrained on ImageNet while Darknet is not. Here `channel_sparsity` is set to 0.75 for comparison.]  
+
+### Effect of channel_sparsity (model width)
+| Model	| Backbone<sup>1</sup>	| channel_sparsity	| Params(M)	| mAP@IoU=0.5	| mAP@IoU=0.5:0.95	|
+| ----- | --------------------- |:-----------------:|:---------:|:-------------:|:-----------------:|
+| YOLO	| ResNet-18				| 0.25				| 0.87		| 0.555			| 0.328				|
+| YOLO	| ResNet-18				| 0.5				| 3.46		| 0.680			| 0.433				|
+| YOLO	| ResNet-18				| 0.75				| 7.76		| 0.716			| 0.468				|
+| YOLO	| ResNet-18				| 1.0				| 13.78		| 0.726			| 0.479				|
+| YOLO	| Darknet				| 0.25				| 3.20		| 0.669			| 0.432				|
+| YOLO	| Darknet				| 0.5				| 12.76		| 0.738			| 0.496				|
+| YOLO	| Darknet				| 0.75				| 28.68		| 0.737			| 0.498				|
+| YOLO	| Darknet				| 1.0				| 50.94		| 0.740			| 0.501				|
+
+[<sup>1</sup>Please note that ResNet-18 is pretrained on ImageNet while Darknet is not.]  
+
+### Effect of transfer learning / pretraining
+| Model	| Backbone	| channel_sparsity	| pretrained		| mAP@IoU=0.5	| mAP@IoU=0.5:0.95	|
+| ----- | --------- |:-----------------:|:-----------------:|:-------------:|:-----------------:|
+| YOLO	| ResNet-18	| 0.25				| :white_check_mark:| 0.555			| 0.328				|
+| YOLO	| ResNet-18	| 0.25				| 					| 0.527			| 0.308				|
+| YOLO	| ResNet-18	| 0.5				| :white_check_mark:| 0.680			| 0.433				|
+| YOLO	| ResNet-18	| 0.5				| 					| 0.662			| 0.419				|
+| YOLO	| ResNet-18	| 0.75				| :white_check_mark:| 0.716			| 0.468				|
+| YOLO	| ResNet-18	| 0.75				| 					| 0.690			| 0.446				|
+| YOLO	| ResNet-18	| 1.0				| :white_check_mark:| 0.726			| 0.479				|
+| YOLO	| ResNet-18	| 1.0				| 					| 0.715			| 0.469				|
+| YOLO	| ResNet-34	| 0.75				| :white_check_mark:| 0.742			| 0.505				|
+| YOLO	| ResNet-34	| 0.75				| 					| 0.726			| 0.487				|
+| YOLO	| ResNet-50	| 0.75				| :white_check_mark:| 0.761			| 0.520				|
+| YOLO	| ResNet-50	| 0.75				| 					| 0.735			| 0.494				|
 
 # Prepare the dataset
 
